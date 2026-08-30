@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-08-30T20:11:23.683512+00:00",
+  "selected_model": "LogisticRegression",
+  "selection_reason": "Highest 5-Fold Cross-Validation Macro F1 Score (0.8251) with balanced generalization across risk tiers.",
+  "model_comparisons": {
+    "LogisticRegression": {
+      "accuracy": 0.9083,
+      "macro_precision": 0.906,
+      "macro_recall": 0.909,
+      "macro_f1": 0.9075,
+      "roc_auc_macro": 0.9809,
+      "confusion_matrix": [
+        [
+          11,
+          1,
+          0
+        ],
+        [
+          1,
+          63,
+          5
+        ],
+        [
+          0,
+          4,
+          35
+        ]
+      ],
+      "classes": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "cv_f1_macro_mean": 0.8251
+    },
+    "RandomForest": {
+      "accuracy": 0.7333,
+      "macro_precision": 0.5346,
+      "macro_recall": 0.5032,
+      "macro_f1": 0.4949,
+      "roc_auc_macro": 0.8871,
+      "confusion_matrix": [
+        [
+          0,
+          12,
+          0
+        ],
+        [
+          0,
+          67,
+          2
+        ],
+        [
+          0,
+          18,
+          21
+        ]
+      ],
+      "classes": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "cv_f1_macro_mean": 0.4573
+    },
+    "GradientBoosting": {
+      "accuracy": 0.8,
+      "macro_precision": 0.7742,
+      "macro_recall": 0.6974,
+      "macro_f1": 0.7225,
+      "roc_auc_macro": 0.927,
+      "confusion_matrix": [
+        [
+          5,
+          7,
+          0
+        ],
+        [
+          2,
+          59,
+          8
+        ],
+        [
+          0,
+          7,
+          32
+        ]
+      ],
+      "classes": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "cv_f1_macro_mean": 0.6372
+    }
+  }
+}

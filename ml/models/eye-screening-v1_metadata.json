@@ -1,0 +1,208 @@
+{
+  "model_name": "verticare-eye-screening-logisticregression",
+  "model_version": "1.0.0",
+  "selected_algorithm": "LogisticRegression",
+  "trained_at": "2026-08-30T21:18:58.651952+00:00",
+  "random_state": 42,
+  "features": [
+    "horizontal_amplitude",
+    "vertical_amplitude",
+    "horizontal_velocity_mean",
+    "vertical_velocity_mean",
+    "horizontal_velocity_max",
+    "vertical_velocity_max",
+    "direction_changes_h",
+    "direction_changes_v",
+    "blink_count",
+    "blink_rate_per_min",
+    "valid_ratio"
+  ],
+  "target_classes": [
+    "NORMAL_FIXATION_PATTERN",
+    "POSSIBLE_HORIZONTAL_NYSTAGMUS_PATTERN",
+    "POSSIBLE_VERTICAL_NYSTAGMUS_PATTERN",
+    "IRREGULAR_OCULAR_DRIFT_PATTERN"
+  ],
+  "class_to_idx": {
+    "NORMAL_FIXATION_PATTERN": 0,
+    "POSSIBLE_HORIZONTAL_NYSTAGMUS_PATTERN": 1,
+    "POSSIBLE_VERTICAL_NYSTAGMUS_PATTERN": 2,
+    "IRREGULAR_OCULAR_DRIFT_PATTERN": 3
+  },
+  "idx_to_class": {
+    "0": "NORMAL_FIXATION_PATTERN",
+    "1": "POSSIBLE_HORIZONTAL_NYSTAGMUS_PATTERN",
+    "2": "POSSIBLE_VERTICAL_NYSTAGMUS_PATTERN",
+    "3": "IRREGULAR_OCULAR_DRIFT_PATTERN"
+  },
+  "patient_split": {
+    "train_patients": 112,
+    "val_patients": 24,
+    "test_patients": 24,
+    "total_samples": 640,
+    "train_samples": 448,
+    "val_samples": 96,
+    "test_samples": 96
+  },
+  "model_comparison": {
+    "LogisticRegression": {
+      "val_f1_macro": 1.0,
+      "test_accuracy": 1.0,
+      "test_precision_macro": 1.0,
+      "test_recall_macro": 1.0,
+      "test_f1_macro": 1.0,
+      "test_roc_auc_macro": 1.0,
+      "confusion_matrix": [
+        [
+          28,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          28,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          20,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          20
+        ]
+      ]
+    },
+    "RandomForest": {
+      "val_f1_macro": 1.0,
+      "test_accuracy": 1.0,
+      "test_precision_macro": 1.0,
+      "test_recall_macro": 1.0,
+      "test_f1_macro": 1.0,
+      "test_roc_auc_macro": 1.0,
+      "confusion_matrix": [
+        [
+          28,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          28,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          20,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          20
+        ]
+      ]
+    },
+    "GradientBoosting": {
+      "val_f1_macro": 1.0,
+      "test_accuracy": 1.0,
+      "test_precision_macro": 1.0,
+      "test_recall_macro": 1.0,
+      "test_f1_macro": 1.0,
+      "test_roc_auc_macro": 1.0,
+      "confusion_matrix": [
+        [
+          28,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          28,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          20,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          20
+        ]
+      ]
+    }
+  },
+  "best_test_metrics": {
+    "val_f1_macro": 1.0,
+    "test_accuracy": 1.0,
+    "test_precision_macro": 1.0,
+    "test_recall_macro": 1.0,
+    "test_f1_macro": 1.0,
+    "test_roc_auc_macro": 1.0,
+    "confusion_matrix": [
+      [
+        28,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        28,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        20,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        20
+      ]
+    ]
+  },
+  "feature_importances": {
+    "horizontal_amplitude": 1.044,
+    "vertical_amplitude": 1.0254,
+    "horizontal_velocity_mean": 0.8584,
+    "vertical_velocity_mean": 0.8014,
+    "horizontal_velocity_max": 0.7348,
+    "vertical_velocity_max": 0.7442,
+    "direction_changes_h": 0.7435,
+    "direction_changes_v": 0.6138,
+    "blink_count": 0.1087,
+    "blink_rate_per_min": 0.1087,
+    "valid_ratio": 0.1923
+  },
+  "scientific_basis": {
+    "literature_citations": [
+      "Lim et al. (2019) 'Developing a Diagnostic Decision Support System for Benign Paroxysmal Positional Vertigo Using a Deep-Learning Model', Journal of Clinical Medicine.",
+      "Newman-Toker et al. (2013) 'Normal vascular events vs stroke in acute vertigo', Stroke.",
+      "Mantokoudis et al. (2015) 'Video-oculography in the emergency department', Annals of Neurology.",
+      "Zhang et al. (2021) 'Classification of Nystagmus with Deep Learning and Video Oculography', IEEE Transactions on Biomedical Engineering."
+    ],
+    "domain_shift_notice": "Standard RGB consumer webcam under visible lighting vs Infrared Video-Oculography in complete darkness.",
+    "clinical_disclaimer": "AI-assisted screening observation. Not a medical diagnosis. Requires clinical evaluation by an ENT / Neurologist."
+  }
+}
