@@ -9,11 +9,24 @@ import tempfile
 
 # SQLAlchemy engine initialization with database connection pool and automatic local fallback
 def init_engine():
+    db_url = settings.DATABASE_URL
+    is_localhost = "localhost" in db_url or "127.0.0.1" in db_url
+    
+    # If unconfigured/localhost in production serverless, fallback immediately to SQLite without waiting for TCP timeout
+    if is_localhost and settings.APP_ENV == "production":
+        db_path = os.path.join(tempfile.gettempdir(), "verticare.db")
+        return create_engine(
+            f"sqlite:///{db_path}",
+            connect_args={"check_same_thread": False}
+        )
+
     try:
+        connect_args = {"connect_timeout": 2} if db_url.startswith("postgresql") else {}
         eng = create_engine(
-            settings.DATABASE_URL,
+            db_url,
             echo=bool(settings.DEBUG),
-            pool_pre_ping=True
+            pool_pre_ping=True,
+            connect_args=connect_args
         )
         # Actively test connection to verify database reachability
         with eng.connect() as conn:
@@ -23,11 +36,10 @@ def init_engine():
     except Exception as e:
         logger.warning(f"Primary database connection failed ({e}). Initializing local SQLite database fallback.")
         db_path = os.path.join(tempfile.gettempdir(), "verticare.db")
-        fallback_eng = create_engine(
+        return create_engine(
             f"sqlite:///{db_path}",
             connect_args={"check_same_thread": False}
         )
-        return fallback_eng
 
 
 engine = init_engine()
