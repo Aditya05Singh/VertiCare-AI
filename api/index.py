@@ -15,3 +15,4 @@ from app.main import app
 
 # Export handler for ASGI serverless runtime
 handler = app
+
