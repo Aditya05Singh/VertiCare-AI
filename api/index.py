@@ -2,14 +2,24 @@ import sys
 import os
 import traceback
 
-# Ensure backend, cv, and ml directories are on python sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(current_dir)
 
-for module_name in ["backend", "cv", "ml", ""]:
-    module_path = os.path.join(root_dir, module_name) if module_name else root_dir
-    if module_path not in sys.path:
-        sys.path.insert(0, module_path)
+# Add all relevant search paths for local and AWS Lambda serverless execution
+search_paths = [
+    root_dir,
+    os.path.join(root_dir, "backend"),
+    os.path.join(root_dir, "cv"),
+    os.path.join(root_dir, "ml"),
+    "/var/task",
+    "/var/task/backend",
+    "/var/task/cv",
+    "/var/task/ml"
+]
+
+for p in search_paths:
+    if os.path.exists(p) and p not in sys.path:
+        sys.path.insert(0, p)
 
 try:
     from app.main import app
@@ -28,7 +38,11 @@ except Exception as e:
                 "error": "Backend initialization failed",
                 "exception": str(e),
                 "traceback": err_msg,
-                "sys_path": sys.path
+                "sys_path": sys.path,
+                "current_dir": current_dir,
+                "root_dir": root_dir,
+                "root_dir_contents": os.listdir(root_dir) if os.path.exists(root_dir) else [],
+                "var_task_contents": os.listdir("/var/task") if os.path.exists("/var/task") else []
             }
         )
     handler = app
