@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # Database URL
     DATABASE_URL: str = "postgresql://verticare_user:verticare_password@localhost:5432/verticare_db"
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: str) -> str:
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
+
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",

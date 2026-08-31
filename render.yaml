@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: verticare-ai-backend
+    runtime: python
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements.txt
+    startCommand: PYTHONPATH=.:backend:cv:ml uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: verticare-ai-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: "http://localhost:5173,http://127.0.0.1:5173,https://*.vercel.app"
+
+databases:
+  - name: verticare-ai-db
+    databaseName: verticare_db
+    user: verticare_user
+    plan: free

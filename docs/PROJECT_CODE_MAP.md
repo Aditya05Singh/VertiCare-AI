@@ -94,3 +94,11 @@ VertiCare-AI/
 - **Service Layer:** `backend/app/services/assignment_service.py`
 - **Schemas:** `backend/app/schemas/assignment.py`
 - **Models:** `backend/app/models/profile.py` (`DoctorPatient` table)
+
+### I. Deployment & Infrastructure
+- **Vercel Frontend Reverse Proxy & SPA Config:** `vercel.json`, `frontend/vercel.json`
+- **Render Backend & Managed DB Blueprint:** `render.yaml`
+- **Python Version Lock:** `.python-version` (3.11.9)
+- **Container Infrastructure:** `docker-compose.yml`, `docker/Dockerfile.backend`, `docker/Dockerfile.frontend`, `docker/nginx.conf`
+- **Continuous Integration Pipeline:** `.github/workflows/ci.yml`
+

@@ -117,8 +117,16 @@ npm run build
 
 ---
 
-## 5. Docker Deployment
+## 5. Deployment Architectures
 
+### A. Cloud Deployment (Vercel + Render)
+- **Frontend (Vercel):** Serves the React 18 / Vite SPA with automated SPA routing and `/api/*` reverse-proxying.
+- **Backend & Database (Render):** Deploys FastAPI web service and managed PostgreSQL database via `render.yaml`.
+- **Single Public URL:** Users access `https://<vercel-domain>`, and API requests to `/api/v1` are securely proxied behind the scenes to Render.
+
+See full instructions in [Deployment Guide](docs/deployment/deployment.md).
+
+### B. Local Container Deployment (Docker Compose)
 ```bash
 docker compose up -d --build
 ```
