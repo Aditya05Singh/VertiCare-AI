@@ -11,8 +11,33 @@ REPORTS_DIR = BASE_DIR / "reports"
 
 MODEL_NAME = "XGBoost"
 MODEL_VERSION = "verticare-risk-v1"
-MODEL_PATH = MODELS_DIR / f"{MODEL_VERSION}.joblib"
-METADATA_PATH = MODELS_DIR / f"{MODEL_VERSION}_metadata.json"
+
+def _find_risk_model_path() -> Path:
+    candidates = [
+        MODELS_DIR / f"{MODEL_VERSION}.joblib",
+        Path(__file__).resolve().parent.parent.parent / "ml" / "models" / f"{MODEL_VERSION}.joblib",
+        Path(f"/var/task/ml/models/{MODEL_VERSION}.joblib"),
+        Path(f"ml/models/{MODEL_VERSION}.joblib"),
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return candidates[0]
+
+def _find_risk_metadata_path() -> Path:
+    candidates = [
+        MODELS_DIR / f"{MODEL_VERSION}_metadata.json",
+        Path(__file__).resolve().parent.parent.parent / "ml" / "models" / f"{MODEL_VERSION}_metadata.json",
+        Path(f"/var/task/ml/models/{MODEL_VERSION}_metadata.json"),
+        Path(f"ml/models/{MODEL_VERSION}_metadata.json"),
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return candidates[0]
+
+MODEL_PATH = _find_risk_model_path()
+METADATA_PATH = _find_risk_metadata_path()
 REPORT_PATH = REPORTS_DIR / "model_evaluation_summary.json"
 
 # Controlled 3-level screening risk classes

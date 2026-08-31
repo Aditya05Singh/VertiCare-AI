@@ -10,8 +10,32 @@ import joblib
 from app.schemas.eye_analysis import EyeScreeningInterpretationResponse
 from cv.src.validation import ALLOWED_CV_FEATURE_NAMES, is_finite_number
 
-MODEL_PATH = Path(__file__).resolve().parent.parent.parent / "ml" / "models" / "eye-screening-v1.joblib"
-METADATA_PATH = Path(__file__).resolve().parent.parent.parent / "ml" / "models" / "eye-screening-v1_metadata.json"
+def _find_eye_model_path() -> Path:
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent / "ml" / "models" / "eye-screening-v1.joblib",
+        Path(__file__).resolve().parent.parent / "ml" / "models" / "eye-screening-v1.joblib",
+        Path("/var/task/ml/models/eye-screening-v1.joblib"),
+        Path("ml/models/eye-screening-v1.joblib"),
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return candidates[0]
+
+def _find_eye_metadata_path() -> Path:
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent / "ml" / "models" / "eye-screening-v1_metadata.json",
+        Path(__file__).resolve().parent.parent / "ml" / "models" / "eye-screening-v1_metadata.json",
+        Path("/var/task/ml/models/eye-screening-v1_metadata.json"),
+        Path("ml/models/eye-screening-v1_metadata.json"),
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return candidates[0]
+
+MODEL_PATH = _find_eye_model_path()
+METADATA_PATH = _find_eye_metadata_path()
 
 FEATURE_COLUMNS = [
     "horizontal_amplitude",
