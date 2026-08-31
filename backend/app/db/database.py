@@ -4,6 +4,9 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.models import Base
 
+import os
+import tempfile
+
 # SQLAlchemy engine initialization with database connection pool and automatic local fallback
 def init_engine():
     try:
@@ -19,8 +22,9 @@ def init_engine():
         return eng
     except Exception as e:
         logger.warning(f"Primary database connection failed ({e}). Initializing local SQLite database fallback.")
+        db_path = os.path.join(tempfile.gettempdir(), "verticare.db")
         fallback_eng = create_engine(
-            "sqlite:///./verticare.db",
+            f"sqlite:///{db_path}",
             connect_args={"check_same_thread": False}
         )
         return fallback_eng
