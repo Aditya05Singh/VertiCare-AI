@@ -25,13 +25,24 @@ app = FastAPI(
 # CORS configuration foundation
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_origins=settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount direct health endpoint
+# Mount root and direct health endpoint
+@app.get("/", tags=["Root"])
+def root():
+    return {
+        "status": "ok",
+        "service": "verticare-backend",
+        "version": "1.0.0",
+        "docs_url": "/docs",
+        "health_url": "/health"
+    }
+
 app.get("/health", tags=["Health"])(health_check)
 
 # Mount versioned API routes (/api/v1 and /api)
