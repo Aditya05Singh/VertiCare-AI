@@ -19,4 +19,7 @@ for p in search_paths:
     if os.path.exists(p) and p not in sys.path:
         sys.path.insert(0, p)
 
-from app.main import app
+from app.main import app as _fastapi_app
+
+# Top-level FastAPI instance assignment for Vercel
+app = _fastapi_app
