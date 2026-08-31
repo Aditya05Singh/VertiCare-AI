@@ -1,10 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.py": {
-      "includeFiles": "{backend,cv,ml}/**"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",
