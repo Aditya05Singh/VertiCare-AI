@@ -1,38 +1,9 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/dist",
-  "framework": "vite",
+  "version": 2,
   "rewrites": [
     {
-      "source": "/api/:match*",
-      "destination": "https://verticare-ai-backend.onrender.com/api/:match*"
-    },
-    {
-      "source": "/health",
-      "destination": "https://verticare-ai-backend.onrender.com/health"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "destination": "/api/index.py"
     }
   ]
 }

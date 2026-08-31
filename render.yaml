@@ -31,3 +31,4 @@ databases:
     databaseName: verticare_db
     user: verticare_user
     plan: free
+
