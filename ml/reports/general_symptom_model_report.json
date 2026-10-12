@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-10-12T16:16:31.479600+00:00",
+  "assessment_type": "EXPERIMENTAL_GENERAL_SYMPTOM_ASSESSMENT",
+  "selected_model": "GradientBoosting",
+  "selection_criteria": "Highest holdout F1-score with balanced generalization",
+  "model_comparisons": {
+    "DummyBaseline": {
+      "accuracy": 0.5341,
+      "precision": 0.5341,
+      "recall": 1.0,
+      "f1_score": 0.6963,
+      "f1_macro": 0.3481,
+      "roc_auc": 0.5,
+      "confusion_matrix": [
+        [
+          0,
+          41
+        ],
+        [
+          0,
+          47
+        ]
+      ],
+      "cv_f1_macro_mean": 0.3475
+    },
+    "LogisticRegression": {
+      "accuracy": 0.625,
+      "precision": 0.6667,
+      "recall": 0.5957,
+      "f1_score": 0.6292,
+      "f1_macro": 0.625,
+      "roc_auc": 0.6622,
+      "confusion_matrix": [
+        [
+          27,
+          14
+        ],
+        [
+          19,
+          28
+        ]
+      ],
+      "cv_f1_macro_mean": 0.6694
+    },
+    "RandomForest": {
+      "accuracy": 0.6818,
+      "precision": 0.7209,
+      "recall": 0.6596,
+      "f1_score": 0.6889,
+      "f1_macro": 0.6817,
+      "roc_auc": 0.7551,
+      "confusion_matrix": [
+        [
+          29,
+          12
+        ],
+        [
+          16,
+          31
+        ]
+      ],
+      "cv_f1_macro_mean": 0.7181
+    },
+    "GradientBoosting": {
+      "accuracy": 0.6818,
+      "precision": 0.7317,
+      "recall": 0.6383,
+      "f1_score": 0.6818,
+      "f1_macro": 0.6818,
+      "roc_auc": 0.7582,
+      "confusion_matrix": [
+        [
+          30,
+          11
+        ],
+        [
+          17,
+          30
+        ]
+      ],
+      "cv_f1_macro_mean": 0.73
+    }
+  },
+  "limitations": [
+    "Dataset is a limited 349-row toy/demonstration cohort.",
+    "High metric scores reflect small-sample characteristics, not generalizable clinical validity.",
+    "Zero vestibular or vertigo-specific diagnoses in training data."
+  ]
+}

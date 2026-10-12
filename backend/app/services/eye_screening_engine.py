@@ -87,7 +87,8 @@ class EyeScreeningEngine:
     def interpret_screening(
         cls,
         features: Dict[str, float],
-        quality: Dict[str, Any]
+        quality: Dict[str, Any],
+        nystagmus_analysis: Optional[Dict[str, Any]] = None
     ) -> EyeScreeningInterpretationResponse:
         """
         Executes an evidence-based screening interpretation on extracted webcam eye features.
@@ -138,10 +139,28 @@ class EyeScreeningEngine:
 
         if model is not None:
             try:
-                probs = model.predict_proba(df_input)[0]
-                pred_idx = int(np.argmax(probs))
-                predicted_label = TARGET_CLASSES[pred_idx]
-                confidence = float(np.max(probs))
+                # Calibrated softmax inference with temperature scaling
+                scaler = getattr(model, "named_steps", {}).get("scaler")
+                clf = getattr(model, "named_steps", {}).get("clf")
+
+                if scaler is not None and clf is not None and hasattr(clf, "decision_function"):
+                    x_scaled = scaler.transform(df_input)
+                    logits = clf.decision_function(x_scaled)[0]
+                    # Temperature scaling T=2.8 prevents overconfident saturation
+                    temp = 2.8
+                    scaled_logits = logits / temp
+                    exp_logits = np.exp(scaled_logits - np.max(scaled_logits))
+                    probs = exp_logits / np.sum(exp_logits)
+                    pred_idx = int(np.argmax(probs))
+                    predicted_label = TARGET_CLASSES[pred_idx]
+                    calibrated_conf = float(np.max(probs))
+                    # Bound confidence ceiling for consumer webcam screening (max 94.0%)
+                    confidence = min(0.940, calibrated_conf)
+                else:
+                    probs = model.predict_proba(df_input)[0]
+                    pred_idx = int(np.argmax(probs))
+                    predicted_label = TARGET_CLASSES[pred_idx]
+                    confidence = min(0.940, float(np.max(probs)))
             except Exception as e:
                 # Fallback to rule-based vestibular kinematics
                 predicted_label, confidence = cls._rule_based_fallback(feature_row)
@@ -203,6 +222,15 @@ class EyeScreeningEngine:
                 f"Normal fixational tracking stability ({valid_ratio * 100:.1f}% valid frames)"
             ]
 
+        if nystagmus_analysis:
+            dom_freq = nystagmus_analysis.get("dominant_frequency_hz", 0.0)
+            pat_type = nystagmus_analysis.get("pattern_type", "INDETERMINATE")
+            asym = nystagmus_analysis.get("velocity_asymmetry_ratio", 1.0)
+            if nystagmus_analysis.get("nystagmus_detected"):
+                contributing_factors.append(f"Oscillatory frequency peak: {dom_freq:.2f} Hz")
+                contributing_factors.append(f"Kinematic waveform pattern: {pat_type}")
+                contributing_factors.append(f"Velocity asymmetry ratio (slow/fast): {asym:.2f}")
+
         return EyeScreeningInterpretationResponse(
             status="AVAILABLE",
             label=predicted_label,
@@ -212,7 +240,8 @@ class EyeScreeningEngine:
             explanation=explanation,
             contributing_factors=contributing_factors,
             disclaimer="AI-assisted screening observation. Not a medical diagnosis. Clinical interpretation should be performed by a qualified healthcare professional.",
-            domain_shift_notice="Captured via consumer RGB webcam under visible lighting. Does not replace infrared video-oculography (VNG/VOG) in darkness."
+            domain_shift_notice="Captured via consumer RGB webcam under visible lighting. Does not replace infrared video-oculography (VNG/VOG) in darkness.",
+            nystagmus_analysis=nystagmus_analysis
         )
 
     @classmethod
@@ -232,4 +261,4 @@ class EyeScreeningEngine:
         elif (h_amp > 0.055 or v_amp > 0.050) and (h_vel > 0.28 or v_vel > 0.25):
             return "IRREGULAR_OCULAR_DRIFT_PATTERN", 0.78
         else:
-            return "NORMAL_FIXATION_PATTERN", 0.92
+            return "NORMAL_FIXATION_PATTERN", 0.82

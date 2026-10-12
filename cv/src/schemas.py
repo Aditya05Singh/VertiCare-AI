@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional, List, Dict, Any
 
 
@@ -13,6 +13,9 @@ class NormalizedEyePosition:
     right_ear: float = 0.3
     inter_ocular_distance: float = 1.0
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 @dataclass
 class TemporalSample:
@@ -26,6 +29,9 @@ class TemporalSample:
     right_ear: float = 0.3
     valid: bool = True
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 @dataclass
 class QualitySummary:
@@ -35,6 +41,9 @@ class QualitySummary:
     valid_ratio: float
     face_detected_ratio: float
     is_sufficient: bool
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass
@@ -51,6 +60,45 @@ class MovementFeatures:
     blink_count: int
     blink_rate_per_min: float
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class NystagmusKinematicFeatures:
+    """
+    Kinematic oscillatory movement parameters derived from temporal eye coordinates.
+    Notice: Descriptive kinematic feature observations only.
+    Not a clinical diagnosis of nystagmus.
+    """
+    dominant_frequency_hz: float
+    oscillation_amplitude: float
+    slow_phase_velocity_mean: float
+    fast_phase_velocity_peak: float
+    jerk_asymmetry_ratio: float
+    dominant_axis: str  # "HORIZONTAL", "VERTICAL", or "INDETERMINATE"
+    pattern_type: str    # "JERK_LIKE", "PENDULAR_LIKE", or "PHYSIOLOGICAL_FIXATION"
+    observation_summary: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class VideoMetadata:
+    """Technical metadata for an analyzed video stream or file."""
+    file_path: Optional[str] = None
+    width: int = 0
+    height: int = 0
+    fps: float = 0.0
+    total_frames: int = 0
+    duration_sec: float = 0.0
+    codec: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 
 @dataclass
 class CVAnalysisResult:
@@ -60,4 +108,7 @@ class CVAnalysisResult:
     features: MovementFeatures
     observation: Dict[str, Any] = field(default_factory=dict)
     session_id: Optional[str] = None
-
+    video_metadata: Optional[VideoMetadata] = None
+    nystagmus_analysis: Optional[Dict[str, Any]] = None
+    warnings: List[str] = field(default_factory=list)
+    limitations: List[str] = field(default_factory=list)

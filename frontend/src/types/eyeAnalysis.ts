@@ -18,6 +18,15 @@ export interface EyeFeatureItem {
   created_at: string;
 }
 
+export interface NystagmusKinematicAnalysis {
+  nystagmus_detected?: boolean;
+  dominant_frequency_hz?: number;
+  dominant_axis?: string;
+  pattern_type?: string;
+  velocity_asymmetry_ratio?: number;
+  frequency_peak_prominence?: number;
+}
+
 export interface EyeScreeningInterpretation {
   status: 'AVAILABLE' | 'UNAVAILABLE';
   label: string;
@@ -28,6 +37,7 @@ export interface EyeScreeningInterpretation {
   contributing_factors: string[];
   disclaimer: string;
   domain_shift_notice: string;
+  nystagmus_analysis?: NystagmusKinematicAnalysis | null;
 }
 
 export interface EyeAnalysisSession {

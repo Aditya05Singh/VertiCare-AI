@@ -52,6 +52,41 @@ export const EyeAnalysis: React.FC = () => {
   // Backend session & feature result
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [resultSession, setResultSession] = useState<EyeAnalysisSession | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorMessage(null);
+    setSessionPhase('PROCESSING');
+
+    try {
+      const completedSession = await eyeAnalysisApi.uploadVideo(file);
+      setResultSession(completedSession);
+      setSessionPhase('COMPLETED');
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.detail || 'Failed to process video file.');
+      setSessionPhase('INTRO');
+    } finally {
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleRunSample = async (pattern: 'normal' | 'horizontal_nystagmus' | 'vertical_nystagmus') => {
+    setErrorMessage(null);
+    setSessionPhase('PROCESSING');
+    try {
+      const completedSession = await eyeAnalysisApi.processSampleVideo(pattern);
+      setResultSession(completedSession);
+      setSessionPhase('COMPLETED');
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.detail || 'Failed to process sample video.');
+      setSessionPhase('INTRO');
+    }
+  };
 
   // Attach stream to video element whenever video element or stream updates
   const attachStreamToVideo = useCallback(() => {
@@ -148,15 +183,13 @@ export const EyeAnalysis: React.FC = () => {
     eyePositionsRef.current = [];
     blinkCountRef.current = 0;
 
-    let lastTime = performance.now();
     let prevGazeX = 0.5;
     let prevGazeY = 0.5;
+    let prevBrightness = 120;
 
     const processFrame = (now: number) => {
       if (videoRef.current && videoRef.current.readyState >= 2) {
         const video = videoRef.current;
-        const width = video.videoWidth || 640;
-        const height = video.videoHeight || 480;
 
         // Sample frame metrics via canvas
         let canvas = canvasRef.current;
@@ -185,15 +218,43 @@ export const EyeAnalysis: React.FC = () => {
           setEyesTracking(isAdequateLighting);
           setQualityGrade(isAdequateLighting ? 'GOOD' : 'LIMITED');
 
-          // Synthesize small physiological ocular micro-movements based on frame sampling
-          const dt = (now - lastTime) / 1000;
-          lastTime = now;
+          // Ocular region-of-interest pupil tracking (horizontal dark centroid in upper-middle face)
+          let totalWeight = 0;
+          let weightedSumX = 0;
+          let weightedSumY = 0;
+          let minVal = 255;
+          let maxVal = 0;
 
-          // Micro jitter + fixational drift estimation
-          const jitterX = (Math.random() - 0.5) * 0.008;
-          const jitterY = (Math.random() - 0.5) * 0.004;
-          const currentGazeX = Math.max(0.4, Math.min(0.6, prevGazeX + jitterX));
-          const currentGazeY = Math.max(0.4, Math.min(0.6, prevGazeY + jitterY));
+          for (let y = 35; y < 65; y += 2) {
+            for (let x = 30; x < 130; x += 2) {
+              const idx = (y * 160 + x) * 4;
+              const gray = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+              if (gray < minVal) minVal = gray;
+              if (gray > maxVal) maxVal = gray;
+            }
+          }
+
+          const threshold = minVal + (maxVal - minVal) * 0.35;
+          for (let y = 35; y < 65; y += 2) {
+            for (let x = 30; x < 130; x += 2) {
+              const idx = (y * 160 + x) * 4;
+              const gray = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+              if (gray < threshold) {
+                const weight = threshold - gray;
+                weightedSumX += (x / 160) * weight;
+                weightedSumY += (y / 120) * weight;
+                totalWeight += weight;
+              }
+            }
+          }
+
+          const measuredX = totalWeight > 0 ? weightedSumX / totalWeight : 0.5;
+          const measuredY = totalWeight > 0 ? weightedSumY / totalWeight : 0.5;
+
+          // Low-pass exponential smoothing (alpha=0.20) to filter sensor noise
+          const alpha = 0.20;
+          const currentGazeX = Math.max(0.3, Math.min(0.7, alpha * measuredX + (1 - alpha) * prevGazeX));
+          const currentGazeY = Math.max(0.3, Math.min(0.7, alpha * measuredY + (1 - alpha) * prevGazeY));
           prevGazeX = currentGazeX;
           prevGazeY = currentGazeY;
 
@@ -204,10 +265,11 @@ export const EyeAnalysis: React.FC = () => {
             valid: isAdequateLighting,
           });
 
-          // Blink counter simulation based on momentary luminance variance
-          if (Math.random() < 0.015) {
+          // Detect blinks based on sudden ocular luminance transitions
+          if (Math.abs(avgBrightness - prevBrightness) > 12) {
             blinkCountRef.current += 1;
           }
+          prevBrightness = avgBrightness;
         }
       }
 
@@ -297,13 +359,14 @@ export const EyeAnalysis: React.FC = () => {
     const validFrames = recordedPoints.filter((p) => p.valid).length || Math.floor(totalFrames * 0.96);
     const validRatio = parseFloat((validFrames / totalFrames).toFixed(3));
 
-    // Numerical kinematic calculations
+    // Numerical kinematic calculations with hysteresis deadband
     let hDisplacements: number[] = [];
     let vDisplacements: number[] = [];
     let dirChangesH = 0;
     let dirChangesV = 0;
-    let prevDiffX = 0;
-    let prevDiffY = 0;
+    const minStep = 0.0025;
+    let lastSigDx = 0;
+    let lastSigDy = 0;
 
     for (let i = 1; i < recordedPoints.length; i++) {
       const dx = recordedPoints[i].x - recordedPoints[i - 1].x;
@@ -311,25 +374,34 @@ export const EyeAnalysis: React.FC = () => {
       hDisplacements.push(Math.abs(dx));
       vDisplacements.push(Math.abs(dy));
 
-      if (dx * prevDiffX < 0) dirChangesH++;
-      if (dy * prevDiffY < 0) dirChangesV++;
-      if (dx !== 0) prevDiffX = dx;
-      if (dy !== 0) prevDiffY = dy;
+      if (Math.abs(dx) >= minStep) {
+        if (dx * lastSigDx < 0) dirChangesH++;
+        lastSigDx = dx;
+      }
+      if (Math.abs(dy) >= minStep) {
+        if (dy * lastSigDy < 0) dirChangesV++;
+        lastSigDy = dy;
+      }
     }
 
-    const hAmp = hDisplacements.length > 0 ? Math.max(...hDisplacements) * 10 : 0.048;
-    const vAmp = vDisplacements.length > 0 ? Math.max(...vDisplacements) * 10 : 0.018;
+    const xCoords = recordedPoints.map((p) => p.x);
+    const yCoords = recordedPoints.map((p) => p.y);
+    const hSpread = xCoords.length > 0 ? Math.max(...xCoords) - Math.min(...xCoords) : 0.048;
+    const vSpread = yCoords.length > 0 ? Math.max(...yCoords) - Math.min(...yCoords) : 0.018;
+
+    const hAmp = Math.max(0.025, Math.min(0.20, hSpread));
+    const vAmp = Math.max(0.010, Math.min(0.18, vSpread));
     const hVelMean =
       hDisplacements.length > 0
-        ? hDisplacements.reduce((a, b) => a + b, 0) / hDisplacements.length * 30
+        ? (hDisplacements.reduce((a, b) => a + b, 0) / hDisplacements.length) * 30
         : 0.284;
     const vVelMean =
       vDisplacements.length > 0
-        ? vDisplacements.reduce((a, b) => a + b, 0) / vDisplacements.length * 30
+        ? (vDisplacements.reduce((a, b) => a + b, 0) / vDisplacements.length) * 30
         : 0.062;
-    const hVelMax = hVelMean * 2.4;
-    const vVelMax = vVelMean * 2.2;
-    const blinks = blinkCountRef.current || 3;
+    const hVelMax = hVelMean * 2.2;
+    const vVelMax = vVelMean * 2.0;
+    const blinks = Math.min(10, Math.max(1, blinkCountRef.current || 3));
     const blinkRate = parseFloat(((blinks / SCREENING_DURATION_SECONDS) * 60).toFixed(1));
 
     const payload: EyeMovementFeaturesSubmit = {
@@ -340,8 +412,8 @@ export const EyeAnalysis: React.FC = () => {
         vertical_velocity_mean: parseFloat(vVelMean.toFixed(4)),
         horizontal_velocity_max: parseFloat(hVelMax.toFixed(4)),
         vertical_velocity_max: parseFloat(vVelMax.toFixed(4)),
-        direction_changes_h: dirChangesH || 6,
-        direction_changes_v: dirChangesV || 2,
+        direction_changes_h: Math.min(25, Math.max(2, dirChangesH || 4)),
+        direction_changes_v: Math.min(20, Math.max(1, dirChangesV || 2)),
         blink_count: blinks,
         blink_rate_per_min: blinkRate,
       },
@@ -419,11 +491,60 @@ export const EyeAnalysis: React.FC = () => {
               </li>
             </ul>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".mp4,.avi,.mov,.webm,.mkv"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
               <Button onClick={startCamera} size="lg" className="w-full sm:w-auto gap-2">
                 <Camera className="w-4 h-4" />
-                <span>Enable Camera & Begin Screening</span>
+                <span>Enable Camera & Live Screening</span>
               </Button>
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto gap-2"
+              >
+                <Video className="w-4 h-4 text-teal-400" />
+                <span>Upload Eye Video File (.mp4, .webm)</span>
+              </Button>
+            </div>
+
+            {/* Quick Test / Verification Section */}
+            <div className="pt-4 border-t border-slate-800 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                Instant Verification (Test Pre-loaded Kinematic Videos):
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => handleRunSample('normal')}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs border-slate-700 hover:border-teal-500/50 hover:bg-slate-900"
+                >
+                  Steady Fixation Test (Normal)
+                </Button>
+                <Button
+                  onClick={() => handleRunSample('horizontal_nystagmus')}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs border-slate-700 hover:border-teal-500/50 hover:bg-slate-900 text-teal-300"
+                >
+                  Horizontal Nystagmus (2.5 Hz)
+                </Button>
+                <Button
+                  onClick={() => handleRunSample('vertical_nystagmus')}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs border-slate-700 hover:border-teal-500/50 hover:bg-slate-900 text-amber-300"
+                >
+                  Vertical Gaze Nystagmus
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -636,7 +757,7 @@ export const EyeAnalysis: React.FC = () => {
                 </h3>
                 {resultSession.screening.confidence !== null && resultSession.screening.confidence !== undefined && (
                   <span className="px-2.5 py-0.5 rounded bg-teal-950 border border-teal-700 text-teal-300 text-xs font-mono font-bold">
-                    Model Probability: {(resultSession.screening.confidence * 100).toFixed(0)}%
+                    Model Probability: {(resultSession.screening.confidence * 100).toFixed(1)}%
                   </span>
                 )}
               </div>
@@ -644,6 +765,40 @@ export const EyeAnalysis: React.FC = () => {
               <p className="text-xs text-slate-300 leading-relaxed">
                 {resultSession.screening.explanation}
               </p>
+
+              {resultSession.screening.nystagmus_analysis && (
+                <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2 text-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-400 block">
+                    Ocular Oscillation Kinematics (FFT Analysis):
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-300">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Dominant Freq:</span>
+                      <span className="font-mono font-bold text-white">
+                        {resultSession.screening.nystagmus_analysis.dominant_frequency_hz?.toFixed(2) || '0.00'} Hz
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Oscillation Axis:</span>
+                      <span className="font-mono font-bold text-teal-300">
+                        {resultSession.screening.nystagmus_analysis.dominant_axis || 'None'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Waveform Pattern:</span>
+                      <span className="font-mono font-bold text-slate-200">
+                        {resultSession.screening.nystagmus_analysis.pattern_type || 'Indeterminate'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Velocity Asymmetry:</span>
+                      <span className="font-mono font-bold text-slate-200">
+                        {resultSession.screening.nystagmus_analysis.velocity_asymmetry_ratio?.toFixed(2) || '1.00'}x
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {resultSession.screening.contributing_factors && resultSession.screening.contributing_factors.length > 0 && (
                 <div className="space-y-1.5 pt-1">

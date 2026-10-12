@@ -30,5 +30,20 @@ export const riskApi = {
     );
     return response.data;
   },
+
+  async assessGeneralSymptoms(data?: {
+    fever?: boolean;
+    cough?: boolean;
+    fatigue?: boolean;
+    difficulty_breathing?: boolean;
+    age?: number;
+    gender?: string;
+    blood_pressure?: string;
+    cholesterol_level?: string;
+  }): Promise<any> {
+    const response = await apiClient.post('/risk-assessment/general-symptoms', data || {});
+    return response.data;
+  },
 };
+
 

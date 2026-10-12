@@ -25,10 +25,16 @@ export const Login: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  const fillCredentials = (email: string, pass: string) => {
+    setValue('email', email, { shouldValidate: true });
+    setValue('password', pass, { shouldValidate: true });
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
@@ -67,12 +73,43 @@ export const Login: React.FC = () => {
         </p>
       </div>
 
-      {authError && (
-        <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-lg text-xs text-rose-300 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{authError}</span>
+      {/* One-Click Demo Credentials */}
+      <div className="p-4 bg-slate-950/70 border border-teal-800/40 rounded-xl space-y-2.5 shadow-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5" />
+            <span>One-Click Demo Accounts</span>
+          </span>
+          <span className="text-[10px] text-slate-500 font-mono">Click to Auto-fill</span>
         </div>
-      )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => fillCredentials('doctor@verticare.org', 'Doctor123!')}
+            className="p-3 text-left bg-slate-900/90 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/60 rounded-lg transition-all group"
+          >
+            <div className="flex items-center gap-1.5 text-cyan-400 font-semibold text-xs">
+              <Stethoscope className="w-3.5 h-3.5" />
+              <span>Clinician / Doctor</span>
+            </div>
+            <p className="text-[11px] font-mono text-slate-300 mt-1">doctor@verticare.org</p>
+            <p className="text-[10px] text-slate-500 font-mono">Doctor123!</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fillCredentials('demo@verticare.org', 'Password123!')}
+            className="p-3 text-left bg-slate-900/90 hover:bg-slate-900 border border-slate-800 hover:border-teal-500/60 rounded-lg transition-all group"
+          >
+            <div className="flex items-center gap-1.5 text-teal-400 font-semibold text-xs">
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Patient Portal</span>
+            </div>
+            <p className="text-[11px] font-mono text-slate-300 mt-1">demo@verticare.org</p>
+            <p className="text-[10px] text-slate-500 font-mono">Password123!</p>
+          </button>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="p-6 bg-slate-950/60 border border-slate-800 rounded-xl space-y-4 shadow-xl">
         <FormFieldWrapper label="Email Address" error={errors.email?.message} required>

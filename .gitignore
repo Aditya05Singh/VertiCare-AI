@@ -80,3 +80,6 @@ Thumbs.db
 *.swp
 *.swo
 
+# External or Unrelated Directories
+BANK_LOAN_LENDING_DATA_ANALYTICS/
+

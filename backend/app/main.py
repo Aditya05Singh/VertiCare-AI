@@ -5,11 +5,16 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.api.routes import api_router
 from app.api.routes.health import health_check
+from app.db.seed_demo import seed_demo_accounts
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.APP_NAME} in {settings.APP_ENV} mode")
+    try:
+        seed_demo_accounts()
+    except Exception as e:
+        logger.warning(f"Demo account seeding skipped: {e}")
     yield
     logger.info(f"Shutting down {settings.APP_NAME}")
 

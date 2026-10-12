@@ -24,5 +24,28 @@ export const eyeAnalysisApi = {
     );
     return response.data;
   },
+
+  async uploadVideo(file: File, sessionId?: string): Promise<EyeAnalysisSession> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const endpoint = sessionId
+      ? `/eye-analysis/sessions/${sessionId}/video`
+      : `/eye-analysis/video-screening`;
+    const response = await apiClient.post<EyeAnalysisSession>(endpoint, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  async processSampleVideo(pattern: 'normal' | 'horizontal_nystagmus' | 'vertical_nystagmus'): Promise<EyeAnalysisSession> {
+    const response = await apiClient.post<EyeAnalysisSession>(
+      `/eye-analysis/sample-video-screening?pattern=${pattern}`
+    );
+    return response.data;
+  },
 };
+
+
 

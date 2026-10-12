@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -6,13 +7,18 @@ from app.models.risk import RiskAssessment, RiskLevel
 from app.models.monitoring import DailyHealthCheck
 from app.models.questionnaire import QuestionnaireSession, SessionStatus
 from app.models.eye_analysis import EyeAnalysisSession, EyeAnalysisStatus
+from app.models.profile import PatientProfile
 from app.schemas.risk import (
     RiskAssessmentCreateRequest,
     RiskAssessmentResponse,
-    RiskAssessmentListResponse
+    RiskAssessmentListResponse,
+    GeneralSymptomAssessmentRequest,
+    GeneralSymptomAssessmentResponse
 )
 from ml.src.feature_engineering import extract_features_from_modalities
 from ml.src.predict import RiskPredictor
+from ml.src.general_symptom_engine.engine import GeneralSymptomRiskEngine
+
 
 
 class RiskAssessmentService:
@@ -183,6 +189,78 @@ class RiskAssessmentService:
             offset=offset
         )
 
+    @classmethod
+    def assess_general_symptoms(
+        cls,
+        db: Session,
+        patient_id: str,
+        data: GeneralSymptomAssessmentRequest
+    ) -> GeneralSymptomAssessmentResponse:
+        """
+        Executes experimental general symptom pattern inference using the Kaggle benchmark engine.
+        Auto-populates age and gender from the patient profile when omitted.
+        Enforces clear clinical boundary disclaimers that this is NOT a vertigo diagnostic tool.
+        """
+        patient = db.query(PatientProfile).filter(PatientProfile.id == patient_id).first()
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient profile not found."
+            )
+
+        # 1. Resolve Patient Age
+        age = data.age
+        if age is None:
+            if patient.date_of_birth:
+                today = date.today()
+                dob = patient.date_of_birth
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            else:
+                age = 35  # reasonable fallback if DOB missing
+
+        # 2. Resolve Patient Gender
+        gender = data.gender
+        if not gender:
+            if patient.gender:
+                g_val = patient.gender.value.upper()
+                if g_val == "MALE":
+                    gender = "Male"
+                elif g_val == "FEMALE":
+                    gender = "Female"
+                else:
+                    gender = "Female"
+            else:
+                gender = "Female"
+
+        # 3. Assemble profile payload
+        profile_dict = {
+            "Fever": "Yes" if data.fever is True else ("No" if data.fever is False else "No"),
+            "Cough": "Yes" if data.cough is True else ("No" if data.cough is False else "No"),
+            "Fatigue": "Yes" if data.fatigue is True else ("No" if data.fatigue is False else "No"),
+            "Difficulty Breathing": "Yes" if data.difficulty_breathing is True else ("No" if data.difficulty_breathing is False else "No"),
+            "Age": int(age),
+            "Gender": str(gender),
+            "Blood Pressure": str(data.blood_pressure or "Normal"),
+            "Cholesterol Level": str(data.cholesterol_level or "Normal"),
+        }
+
+        # 4. Execute inference
+        res = GeneralSymptomRiskEngine.assess(profile_dict)
+
+        return GeneralSymptomAssessmentResponse(
+            assessment_type=res.assessment_type,
+            model_version=res.model_version,
+            status=res.status,
+            prediction=res.prediction,
+            probability_positive=res.probability_positive,
+            confidence_tier=res.confidence_tier,
+            data_quality_warnings=res.data_quality_warnings,
+            insufficient_information=res.insufficient_information,
+            relevant_limitations=res.relevant_limitations,
+            contributing_symptoms=res.contributing_symptoms,
+            notice=GeneralSymptomAssessmentResponse.model_fields["notice"].default
+        )
+
     @staticmethod
     def _build_response(assessment: RiskAssessment) -> RiskAssessmentResponse:
         """Build RiskAssessmentResponse schema from database entity."""
@@ -199,4 +277,5 @@ class RiskAssessmentService:
             contributing_factors=assessment.contributing_factors or [],
             created_at=assessment.created_at
         )
+
 

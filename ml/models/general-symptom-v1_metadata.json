@@ -1,0 +1,79 @@
+{
+  "model_name": "GradientBoosting",
+  "model_version": "general-symptom-v1",
+  "assessment_type": "EXPERIMENTAL_GENERAL_SYMPTOM_ASSESSMENT",
+  "trained_timestamp": "2026-10-12T16:16:31.479467+00:00",
+  "random_state": 42,
+  "dataset_inspection": {
+    "total_records": 349,
+    "total_columns": 10,
+    "columns": [
+      "Disease",
+      "Fever",
+      "Cough",
+      "Fatigue",
+      "Difficulty Breathing",
+      "Age",
+      "Gender",
+      "Blood Pressure",
+      "Cholesterol Level",
+      "Outcome Variable"
+    ],
+    "target_distribution": {
+      "Positive": 186,
+      "Negative": 163
+    },
+    "missing_values": {
+      "Disease": 0,
+      "Fever": 0,
+      "Cough": 0,
+      "Fatigue": 0,
+      "Difficulty Breathing": 0,
+      "Age": 0,
+      "Gender": 0,
+      "Blood Pressure": 0,
+      "Cholesterol Level": 0,
+      "Outcome Variable": 0
+    },
+    "duplicate_rows": 49,
+    "unique_disease_count": 116,
+    "vertigo_disease_count": 0,
+    "supports_vertigo_prediction": false,
+    "dataset_provenance": "Kaggle (uom190346a) - 349 general illness symptom profiles"
+  },
+  "dataset_split": {
+    "total_records": 349,
+    "train_samples": 261,
+    "test_samples": 88
+  },
+  "feature_names": [
+    "Fever",
+    "Cough",
+    "Fatigue",
+    "Difficulty Breathing",
+    "Age",
+    "Gender",
+    "Blood Pressure",
+    "Cholesterol Level"
+  ],
+  "selected_model_metrics": {
+    "accuracy": 0.6818,
+    "precision": 0.7317,
+    "recall": 0.6383,
+    "f1_score": 0.6818,
+    "f1_macro": 0.6818,
+    "roc_auc": 0.7582,
+    "confusion_matrix": [
+      [
+        30,
+        11
+      ],
+      [
+        17,
+        30
+      ]
+    ],
+    "cv_f1_macro_mean": 0.73
+  },
+  "provenance_notice": "Trained on Kaggle Disease Symptoms and Patient Profile Dataset (349 records). Contains general illness labels only (e.g., Asthma, Stroke, Influenza). Does not contain vertigo, BPPV, or vestibular disorder labels. Experimental prototype only; not a clinically validated diagnostic tool."
+}

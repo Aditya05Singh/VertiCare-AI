@@ -61,8 +61,15 @@ flowchart TD
 4. **Patient / Doctor Authorization:** Server-side anti-IDOR checks enforcing strict patient tenant isolation and verified doctor-patient assignments.
 5. **Daily Health Monitoring:** Severity tracking (dizziness, imbalance, nausea, tinnitus, headache), trigger logs, and longitudinal trend analytics.
 6. **Adaptive Questionnaire:** Deterministic branching clinical tree (10 clinical questions) mapping vertigo onset, triggers, and duration.
-7. **Computer Vision Eye-Movement Screening:** Real-time MediaPipe facial mesh landmark tracking, extracting 10 kinematic features (amplitudes, velocities, directional reversals, blink rates).
-8. **ML Risk Engine:** Offline-trained XGBoost / Gradient Boosting multimodal risk prediction engine with graceful fallback imputation.
+7. **Computer Vision Eye-Movement Screening:** Real-time MediaPipe facial mesh landmark tracking and close-up ocular ROI segmentation, extracting 10 kinematic features (amplitudes, velocities, directional reversals, blink rates).
+   - **Video Pipeline & RANSAC Tracking:** Supports video files (`.mp4`, `.avi`, `.mov`, `.webm`) with format/duration/size validation, Hartley-centered algebraic ellipse fitting, and RANSAC outlier rejection (attributed to `nphilip1098/pupiltrack-nystagmus`).
+   - **Nystagmus Kinematic Analysis:** FFT dominant oscillation frequency, slow-to-fast velocity asymmetry ratios, and waveform classification (`JERK_LIKE`, `PENDULAR_LIKE`, `PHYSIOLOGICAL_FIXATION`).
+   - **Endpoints:** `POST /api/eye-analysis/sessions/{id}/video` and `POST /api/eye-analysis/video-screening`.
+8. **ML Risk Engine:** Offline-trained XGBoost / Gradient Boosting multimodal risk prediction engine fusing health checks, questionnaires, and eye tracking.
+   - **Experimental General Symptom Engine:** Standalone illness benchmark engine trained on the Kaggle Disease Symptoms and Patient Profile Dataset (`uom190346a`).
+   - **Endpoints:** `POST /api/risk-assessment/general-symptoms` (evaluates general symptoms with auto-populated patient profile demographics).
+   - **Explicit Clinical Boundary:** Transparently discloses dataset provenance and emphasizes that general symptom indicators do NOT diagnose vertigo, BPPV, or vestibular disorders.
+   - *(Note: Synthetic-to-real domain adaptation was intentionally excluded per project requirements).*
 9. **Risk Assessment:** Calibrated risk tiers (LOW, MEDIUM, HIGH) with contributing factor breakdown and non-diagnostic disclaimers.
 10. **Patient Longitudinal History:** Consolidated timeline across symptom checks, screening questionnaires, eye tests, and clinical notes.
 11. **Doctor Dashboard:** Live clinician KPI overview, risk distribution breakdown, and real-time patient activity feed.
@@ -70,6 +77,7 @@ flowchart TD
 13. **Doctor Clinical Notes:** Clinician observation logging with privacy sharing controls and audit timestamps.
 14. **Clinical Summary Reports:** Comprehensive multi-modal summary reports for patient records with clinical disclaimers.
 15. **Emergency Support & Red-Flag Escalation:** Red-flag triage for acute symptoms, emergency contact integration, and clinician alert resolution workflows.
+
 
 ---
 

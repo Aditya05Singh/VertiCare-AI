@@ -8,7 +8,9 @@ from app.models.user import User
 from app.schemas.risk import (
     RiskAssessmentCreateRequest,
     RiskAssessmentResponse,
-    RiskAssessmentListResponse
+    RiskAssessmentListResponse,
+    GeneralSymptomAssessmentRequest,
+    GeneralSymptomAssessmentResponse
 )
 from app.services.risk_assessment_service import RiskAssessmentService
 
@@ -75,4 +77,26 @@ def get_risk_assessment_by_id(
     """Fetches a specific risk assessment by ID with strict ownership validation."""
     patient_id = _get_patient_id(current_user)
     return RiskAssessmentService.get_assessment(db, patient_id, id)
+
+
+@router.post(
+    "/general-symptoms",
+    response_model=GeneralSymptomAssessmentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Evaluate general symptom illness profile (Benchmark Engine)"
+)
+def assess_patient_general_symptoms(
+    data: Optional[GeneralSymptomAssessmentRequest] = None,
+    current_user: User = Depends(require_patient),
+    db: Session = Depends(get_db)
+):
+    """
+    Executes experimental general symptom pattern inference using the Kaggle benchmark engine.
+    Auto-populates age and gender from patient profile if not provided.
+    Includes explicit clinical boundary notices (NOT a vertigo diagnostic assessment).
+    """
+    patient_id = _get_patient_id(current_user)
+    request_data = data or GeneralSymptomAssessmentRequest()
+    return RiskAssessmentService.assess_general_symptoms(db, patient_id, request_data)
+
 

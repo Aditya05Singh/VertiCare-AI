@@ -1,3 +1,4 @@
+import datetime
 import pytest
 from app.models.profile import DoctorPatient, PatientProfile, DoctorProfile
 from app.models.user import User
@@ -57,7 +58,7 @@ def test_doctor_dashboard_and_assigned_patient_flow(client, db_session):
     client.post(
         "/api/health-checks",
         json={
-            "check_date": "2026-08-31",
+            "check_date": datetime.date.today().isoformat(),
             "dizziness_severity": 6,
             "imbalance_severity": 5,
             "stress_level": 4,

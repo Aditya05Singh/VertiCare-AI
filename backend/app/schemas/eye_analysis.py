@@ -65,6 +65,10 @@ class EyeScreeningInterpretationResponse(BaseSchema):
         "Does not replace infrared video-oculography (VNG/VOG) in darkness.",
         description="Webcam vs Infrared VOG hardware domain-shift notice"
     )
+    nystagmus_analysis: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Detailed kinematic oscillation analysis including FFT frequency, velocity asymmetry, and waveform classification"
+    )
 
 
 class EyeAnalysisSessionResponse(BaseSchema):
@@ -77,4 +81,9 @@ class EyeAnalysisSessionResponse(BaseSchema):
     features: List[EyeFeatureItem] = []
     screening: Optional[EyeScreeningInterpretationResponse] = None
     created_at: datetime
+    video_metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Technical video stream metadata (FPS, duration, dimensions, frame count) if processed from uploaded file"
+    )
     notice: str = "Computer-vision eye-movement feature extraction for clinical screening support. Not a medical diagnosis."
+
