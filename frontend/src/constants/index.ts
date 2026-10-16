@@ -6,6 +6,7 @@ export const MEDICAL_DISCLAIMER =
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV
-    ? "/api/v1"
+    ? `${typeof window !== 'undefined' && window.location.protocol ? window.location.protocol : 'http:'}//${typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : '127.0.0.1'}:8000/api/v1`
     : "https://backend-five-lime-21.vercel.app/api/v1");
+
 
