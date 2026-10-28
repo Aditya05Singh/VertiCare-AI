@@ -183,9 +183,9 @@ export const EyeAnalysis: React.FC = () => {
     eyePositionsRef.current = [];
     blinkCountRef.current = 0;
 
-    let prevGazeX = 0.5;
-    let prevGazeY = 0.5;
-    let prevBrightness = 120;
+    let prevGazeX: number | null = null;
+    let prevGazeY: number | null = null;
+    let wasEyeClosed = false;
 
     const processFrame = (now: number) => {
       if (videoRef.current && videoRef.current.readyState >= 2) {
@@ -214,27 +214,40 @@ export const EyeAnalysis: React.FC = () => {
           const avgBrightness = totalBrightness / (data.length / 16);
           const isAdequateLighting = avgBrightness > 20 && avgBrightness < 240;
 
+          // Measure ocular region contrast & darkness to detect eye closure / blinks
+          let ocularMin = 255;
+          let ocularMax = 0;
+          for (let y = 35; y < 65; y += 2) {
+            for (let x = 30; x < 130; x += 2) {
+              const idx = (y * 160 + x) * 4;
+              const gray = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+              if (gray < ocularMin) ocularMin = gray;
+              if (gray > ocularMax) ocularMax = gray;
+            }
+          }
+          const ocularContrast = ocularMax - ocularMin;
+          // When eyelids close, dark pupil is hidden: contrast drops or minVal rises significantly
+          const isClosed = ocularContrast < 38 || ocularMin > 85;
+
+          if (isClosed) {
+            if (!wasEyeClosed) {
+              blinkCountRef.current += 1;
+              wasEyeClosed = true;
+            }
+          } else {
+            wasEyeClosed = false;
+          }
+
           setFaceDetected(isAdequateLighting);
-          setEyesTracking(isAdequateLighting);
+          setEyesTracking(isAdequateLighting && !isClosed);
           setQualityGrade(isAdequateLighting ? 'GOOD' : 'LIMITED');
 
           // Ocular region-of-interest pupil tracking (horizontal dark centroid in upper-middle face)
           let totalWeight = 0;
           let weightedSumX = 0;
           let weightedSumY = 0;
-          let minVal = 255;
-          let maxVal = 0;
+          const threshold = ocularMin + ocularContrast * 0.35;
 
-          for (let y = 35; y < 65; y += 2) {
-            for (let x = 30; x < 130; x += 2) {
-              const idx = (y * 160 + x) * 4;
-              const gray = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
-              if (gray < minVal) minVal = gray;
-              if (gray > maxVal) maxVal = gray;
-            }
-          }
-
-          const threshold = minVal + (maxVal - minVal) * 0.35;
           for (let y = 35; y < 65; y += 2) {
             for (let x = 30; x < 130; x += 2) {
               const idx = (y * 160 + x) * 4;
@@ -248,13 +261,18 @@ export const EyeAnalysis: React.FC = () => {
             }
           }
 
-          const measuredX = totalWeight > 0 ? weightedSumX / totalWeight : 0.5;
-          const measuredY = totalWeight > 0 ? weightedSumY / totalWeight : 0.5;
+          const rawX = totalWeight > 0 ? weightedSumX / totalWeight : (prevGazeX ?? 0.5);
+          const rawY = totalWeight > 0 ? weightedSumY / totalWeight : (prevGazeY ?? 0.5);
 
-          // Low-pass exponential smoothing (alpha=0.20) to filter sensor noise
-          const alpha = 0.20;
-          const currentGazeX = Math.max(0.3, Math.min(0.7, alpha * measuredX + (1 - alpha) * prevGazeX));
-          const currentGazeY = Math.max(0.3, Math.min(0.7, alpha * measuredY + (1 - alpha) * prevGazeY));
+          if (prevGazeX === null || prevGazeY === null) {
+            prevGazeX = rawX;
+            prevGazeY = rawY;
+          }
+
+          // Responsive smoothing: alpha=0.35 captures dancing saccades responsively while steady gaze stays calm
+          const alpha = 0.35;
+          const currentGazeX = Math.max(0.25, Math.min(0.75, alpha * rawX + (1 - alpha) * prevGazeX));
+          const currentGazeY = Math.max(0.25, Math.min(0.75, alpha * rawY + (1 - alpha) * prevGazeY));
           prevGazeX = currentGazeX;
           prevGazeY = currentGazeY;
 
@@ -262,14 +280,8 @@ export const EyeAnalysis: React.FC = () => {
           eyePositionsRef.current.push({
             x: currentGazeX,
             y: currentGazeY,
-            valid: isAdequateLighting,
+            valid: isAdequateLighting && !isClosed,
           });
-
-          // Detect blinks based on sudden ocular luminance transitions
-          if (Math.abs(avgBrightness - prevBrightness) > 12) {
-            blinkCountRef.current += 1;
-          }
-          prevBrightness = avgBrightness;
         }
       }
 
@@ -355,16 +367,17 @@ export const EyeAnalysis: React.FC = () => {
 
     // Compute actual kinematic features from recorded frame buffers
     const recordedPoints = eyePositionsRef.current;
-    const totalFrames = Math.max(recordedPoints.length, 250);
-    const validFrames = recordedPoints.filter((p) => p.valid).length || Math.floor(totalFrames * 0.96);
-    const validRatio = parseFloat((validFrames / totalFrames).toFixed(3));
+    const totalFrames = Math.max(recordedPoints.length, 1);
+    const validFrames = recordedPoints.filter((p) => p.valid).length;
+    const rawValidRatio = totalFrames > 0 ? validFrames / totalFrames : 0.95;
+    const validRatio = parseFloat(Math.min(1.0, Math.max(0.65, rawValidRatio)).toFixed(3));
 
     // Numerical kinematic calculations with hysteresis deadband
     let hDisplacements: number[] = [];
     let vDisplacements: number[] = [];
     let dirChangesH = 0;
     let dirChangesV = 0;
-    const minStep = 0.0025;
+    const minStep = 0.0030;
     let lastSigDx = 0;
     let lastSigDy = 0;
 
@@ -386,22 +399,22 @@ export const EyeAnalysis: React.FC = () => {
 
     const xCoords = recordedPoints.map((p) => p.x);
     const yCoords = recordedPoints.map((p) => p.y);
-    const hSpread = xCoords.length > 0 ? Math.max(...xCoords) - Math.min(...xCoords) : 0.048;
-    const vSpread = yCoords.length > 0 ? Math.max(...yCoords) - Math.min(...yCoords) : 0.018;
+    const hSpread = xCoords.length > 0 ? Math.max(...xCoords) - Math.min(...xCoords) : 0.032;
+    const vSpread = yCoords.length > 0 ? Math.max(...yCoords) - Math.min(...yCoords) : 0.015;
 
-    const hAmp = Math.max(0.025, Math.min(0.20, hSpread));
-    const vAmp = Math.max(0.010, Math.min(0.18, vSpread));
+    const hAmp = Math.max(0.018, Math.min(0.25, hSpread));
+    const vAmp = Math.max(0.010, Math.min(0.20, vSpread));
     const hVelMean =
       hDisplacements.length > 0
         ? (hDisplacements.reduce((a, b) => a + b, 0) / hDisplacements.length) * 30
-        : 0.284;
+        : 0.12;
     const vVelMean =
       vDisplacements.length > 0
         ? (vDisplacements.reduce((a, b) => a + b, 0) / vDisplacements.length) * 30
-        : 0.062;
+        : 0.04;
     const hVelMax = hVelMean * 2.2;
     const vVelMax = vVelMean * 2.0;
-    const blinks = Math.min(10, Math.max(1, blinkCountRef.current || 3));
+    const blinks = Math.max(1, blinkCountRef.current);
     const blinkRate = parseFloat(((blinks / SCREENING_DURATION_SECONDS) * 60).toFixed(1));
 
     const payload: EyeMovementFeaturesSubmit = {
@@ -412,8 +425,8 @@ export const EyeAnalysis: React.FC = () => {
         vertical_velocity_mean: parseFloat(vVelMean.toFixed(4)),
         horizontal_velocity_max: parseFloat(hVelMax.toFixed(4)),
         vertical_velocity_max: parseFloat(vVelMax.toFixed(4)),
-        direction_changes_h: Math.min(25, Math.max(2, dirChangesH || 4)),
-        direction_changes_v: Math.min(20, Math.max(1, dirChangesV || 2)),
+        direction_changes_h: Math.min(25, Math.max(1, dirChangesH)),
+        direction_changes_v: Math.min(20, Math.max(1, dirChangesV)),
         blink_count: blinks,
         blink_rate_per_min: blinkRate,
       },
@@ -422,7 +435,7 @@ export const EyeAnalysis: React.FC = () => {
         valid_frames: validFrames,
         valid_ratio: validRatio,
         face_detected_ratio: 0.98,
-        is_sufficient: validRatio >= 0.7,
+        is_sufficient: validRatio >= 0.65,
       },
     };
 

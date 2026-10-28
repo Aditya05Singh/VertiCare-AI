@@ -360,8 +360,8 @@ def test_sample_video_screening_endpoint_and_calibrated_confidence(client):
     data_norm = res_norm.json()
     assert data_norm["screening"]["status"] == "AVAILABLE"
     assert "NORMAL_FIXATION_PATTERN" in data_norm["screening"]["label"]
-    # Probability must be calibrated below 100% (<= 0.94)
-    assert 0.50 <= data_norm["screening"]["confidence"] <= 0.94
+    # Normal person calibrated probability is around 20-30%
+    assert 0.20 <= data_norm["screening"]["confidence"] <= 0.30
 
     # 2. Test horizontal nystagmus pattern
     res_horiz = client.post(
@@ -372,6 +372,7 @@ def test_sample_video_screening_endpoint_and_calibrated_confidence(client):
     data_horiz = res_horiz.json()
     assert data_horiz["screening"]["status"] == "AVAILABLE"
     assert "HORIZONTAL_NYSTAGMUS" in data_horiz["screening"]["label"]
-    assert 0.50 <= data_horiz["screening"]["confidence"] <= 0.94
+    # Dancing / moving eyes calibrated probability is around 60-70%
+    assert 0.60 <= data_horiz["screening"]["confidence"] <= 0.70
     assert data_horiz["screening"]["nystagmus_analysis"] is not None
     assert data_horiz["screening"]["nystagmus_analysis"]["dominant_frequency_hz"] > 0.0

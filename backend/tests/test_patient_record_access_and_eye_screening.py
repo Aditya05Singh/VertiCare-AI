@@ -234,6 +234,7 @@ def test_eye_screening_engine_patterns_and_disclaimers():
     assert res_norm.status == "AVAILABLE"
     assert "NORMAL_FIXATION_PATTERN" in res_norm.label
     assert res_norm.confidence is not None
+    assert 0.20 <= res_norm.confidence <= 0.30
     assert "Not a medical diagnosis" in res_norm.disclaimer
     assert "RGB webcam" in res_norm.domain_shift_notice
 
@@ -253,6 +254,7 @@ def test_eye_screening_engine_patterns_and_disclaimers():
     res_nyst = EyeScreeningEngine.interpret_screening(nystagmus_feats, good_quality)
     assert res_nyst.status == "AVAILABLE"
     assert "HORIZONTAL_NYSTAGMUS" in res_nyst.label
+    assert 0.60 <= res_nyst.confidence <= 0.70
     assert len(res_nyst.contributing_factors) >= 3
 
     # 3. Insufficient Quality Cutoff
