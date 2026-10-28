@@ -139,3 +139,5 @@ See full instructions in [Deployment Guide](docs/deployment/deployment.md).
 docker compose up -d --build
 ```
 This builds and starts PostgreSQL (port 5432), FastAPI Backend (port 8000), and Nginx Frontend (port 80).
+#forentend
+
